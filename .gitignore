@@ -1,0 +1,5 @@
+app
+compile_commands.json
+.vscode/
+.DS_Store
+*.o
