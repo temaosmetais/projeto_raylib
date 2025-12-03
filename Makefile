@@ -1,6 +1,6 @@
 CC = gcc
 
-SRC = src/main.c src/utils.c src/screens.c
+SRC = src/main.c src/utils.c src/screens.c src/map.c src/player.c src/monster.c
 CFLAGS = -I include/ \
 		 -Wall \
 		 -std=c99

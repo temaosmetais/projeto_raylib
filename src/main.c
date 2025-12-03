@@ -1,71 +1,37 @@
-#include "raylib.h"
+#include "../include/raylib.h"
 #include "utils.h"
 #include "screens.h"
 
-int main(void)
-{
-	InitWindow(screenWidth, screenHeight, "Hollow Knight");
-	SetExitKey(KEY_NULL);
-	SetTargetFPS(60);
+int main(void) {
+    InitWindow(screenWidth, screenHeight, "Hollow Knight Clone");
+    SetTargetFPS(60);
+    SetExitKey(KEY_NULL);
 
-	GameScreen currentScreen = MENU;
+    GameScreen currentScreen = MENU;
+    Rectangle btnPlay, btnLoad, btnHelp, btnExit;
+    InitMenu(&btnPlay, &btnLoad, &btnHelp, &btnExit);
 
-	Rectangle btnPlay = {0};
-	Rectangle btnLoad = {0};
-	Rectangle btnHelp = {0};
-	Rectangle btnExit = {0};
+    while (!WindowShouldClose()) {
+        switch(currentScreen) {
+            case MENU: currentScreen = UpdateMenu(currentScreen, &btnPlay, &btnLoad, &btnHelp, &btnExit); break;
+            case GAMEPLAY: currentScreen = UpdateGameplay(currentScreen); break;
+            case PAUSE: currentScreen = UpdatePause(currentScreen); break;
+            case EXITING: goto End;
+            default: break;
+        }
 
-	InitMenu(&btnPlay, &btnLoad, &btnHelp, &btnExit);
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+        switch(currentScreen) {
+            case MENU: DrawMenu(&btnPlay, &btnLoad, &btnHelp, &btnExit); break;
+            case GAMEPLAY: DrawGameplay(); break;
+            case PAUSE: DrawPause(&currentScreen); break;
+            default: break;
+        }
+        EndDrawing();
+    }
 
-	while (!WindowShouldClose())
-	{
-		switch (currentScreen)
-		{
-			case MENU:
-				currentScreen = UpdateMenu(currentScreen, &btnPlay, &btnLoad, &btnHelp, &btnExit);
-				break;
-			case GAMEPLAY:
-				currentScreen = UpdateGameplay(currentScreen);
-				break;
-			case PAUSE:
-				currentScreen = UpdatePause(currentScreen);
-				break;
-			case LOADING:
-				currentScreen = UpdateLoading(currentScreen);
-				break;
-			case HELP:
-				currentScreen = UpdateHelp(currentScreen);
-				break;
-			case EXITING:
-				goto CloseGame;
-			default: break;
-		}
-
-		BeginDrawing();
-		ClearBackground(RAYWHITE);
-
-		switch (currentScreen)
-		{
-			case MENU:
-				DrawMenu(&btnPlay, &btnLoad, &btnHelp, &btnExit);
-				break;
-			case GAMEPLAY:
-				DrawGameplay();
-				break;
-			case PAUSE:
-				DrawPause(&currentScreen);
-				break;
-			case HELP:
-				DrawHelp();
-				break;
-			default: break;
-		}
-
-		EndDrawing();
-	}
-
-	CloseGame:
-		CloseWindow();
-
-	return 0;
+    End:
+    CloseWindow();
+    return 0;
 }

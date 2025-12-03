@@ -1,3 +1,5 @@
+.cache/
+*.exe
 app
 compile_commands.json
 .vscode/
