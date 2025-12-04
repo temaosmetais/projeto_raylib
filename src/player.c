@@ -47,7 +47,7 @@ void UpdatePlayer(Player* player, Map* map, float delta) {
     if (IsKeyDown(KEY_LEFT)) { moveX = -PLAYER_SPEED; player->isFacingRight = false; }
     if (IsKeyDown(KEY_RIGHT)) { moveX = PLAYER_SPEED; player->isFacingRight = true; }
 
-    if (IsKeyPressed(KEY_SPACE) && player->canJump) {
+    if (IsKeyPressed(KEY_Z) && player->canJump) {
         player->speed.y = JUMP_FORCE;
         player->canJump = false;
         playJumpSound = true;
