@@ -12,10 +12,10 @@ static bool gameInitialized = false;
 static bool startAsNewGame = true;
 static int nextLevelIndex = 1;
 
-// --- ÁUDIO ---
-static Music musicMenu, musicVila, musicTunel, musicGameOver, musicEnding; // <--- NOVA MÚSICA
+static Music musicMenu, musicVila, musicTunel, musicGameOver, musicEnding;
 static bool menuAudioLoaded = false;
 static Sound soundHit, soundJump;
+
 extern bool playHitSound;
 extern bool playJumpSound;
 
@@ -28,15 +28,16 @@ const char* levels[] = {
 };
 const int maxLevels = 4;
 
+// --- LEVEL TRANSITION LOGIC ---
+
 void TransitionToLevel(int idx) {
     if (idx >= maxLevels) idx = 0;
     currentLevel = idx;
 
-    // Para todas as músicas
     StopMusicStream(musicVila);
     StopMusicStream(musicTunel);
     StopMusicStream(musicGameOver);
-    StopMusicStream(musicEnding); // <--- Para música de final
+    StopMusicStream(musicEnding);
 
     Vector2 start = LoadMapFromFile(&currentMap, levels[idx]);
     player.position = start;
@@ -48,6 +49,8 @@ void TransitionToLevel(int idx) {
     else PlayMusicStream(musicTunel);
 }
 
+// ====================== GAMEPLAY ======================
+
 GameScreen UpdateGameplay(GameScreen s) {
     if (!gameInitialized) {
         InitPlayer(&player);
@@ -55,11 +58,10 @@ GameScreen UpdateGameplay(GameScreen s) {
         if (!IsAudioDeviceReady()) InitAudioDevice();
 
         if (musicVila.stream.buffer == NULL) {
-            // Carrega todas as músicas
             musicVila = LoadMusicStream("assets/music_vila.mp3");
             musicTunel = LoadMusicStream("assets/music_tunel.mp3");
             musicGameOver = LoadMusicStream("assets/music_gameover.mp3");
-            musicEnding = LoadMusicStream("assets/music_ending.mp3"); // <--- CARREGA AQUI
+            musicEnding = LoadMusicStream("assets/music_ending.mp3");
 
             soundHit = LoadSound("assets/hit.wav");
             soundJump = LoadSound("assets/jump.mp3");
@@ -67,7 +69,7 @@ GameScreen UpdateGameplay(GameScreen s) {
             SetMusicVolume(musicVila, 0.5f);
             SetMusicVolume(musicTunel, 0.5f);
             SetMusicVolume(musicGameOver, 0.7f);
-            SetMusicVolume(musicEnding, 0.6f); // <--- VOLUME
+            SetMusicVolume(musicEnding, 0.6f);
         }
 
         if (startAsNewGame) {
@@ -83,10 +85,11 @@ GameScreen UpdateGameplay(GameScreen s) {
         gameInitialized = true;
     }
 
+    // Audio Triggers
     if (playHitSound) { PlaySound(soundHit); playHitSound = false; }
     if (playJumpSound) { PlaySound(soundJump); playJumpSound = false; }
 
-    // Morte
+    // Death State
     if (player.isDead) {
         if (!IsMusicStreamPlaying(musicGameOver)) {
             StopMusicStream(musicVila);
@@ -103,30 +106,35 @@ GameScreen UpdateGameplay(GameScreen s) {
         return s;
     }
 
-    // Música Ambiente
+    // Music State
     if (IsMusicStreamPlaying(musicGameOver)) StopMusicStream(musicGameOver);
 
     if (currentMap.isVillage) UpdateMusicStream(musicVila);
     else UpdateMusicStream(musicTunel);
 
+    // Updates
     float dt = GetFrameTime();
     UpdatePlayer(&player, &currentMap, dt);
     UpdateMonsters(&currentMap, dt);
 
+    // Cheat: Right boundary transition
     if (player.position.x > (MAP_COLS * TILE_SIZE) - 100) {
         if(currentMap.isVillage) TransitionToLevel(nextLevelIndex);
     }
 
+    // Portal Logic
     Rectangle pRect = {player.position.x, player.position.y, player.width, player.height};
     for (int i = 0; i < currentMap.portalsCount; i++) {
         if (CheckCollisionRecs(pRect, currentMap.portals[i].rect)) {
-            DrawText("W / CIMA", player.position.x-20, player.position.y-40, 10, RAYWHITE);
+
+            const char* portalMsg = "W / CIMA";
+            DrawText(portalMsg, player.position.x - 20, player.position.y - 40, 10, RAYWHITE);
+
             if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
                 if (currentMap.isVillage) {
                     TransitionToLevel(nextLevelIndex);
                 } else {
                     if (currentLevel == maxLevels - 1) {
-                        // Para as músicas da fase antes de ir para o final
                         StopMusicStream(musicTunel);
                         return ENDING;
                     }
@@ -138,13 +146,20 @@ GameScreen UpdateGameplay(GameScreen s) {
         }
     }
 
+    // Camera Logic
     camera.target.x = player.position.x + player.width/2;
     camera.target.y = player.position.y + player.height/2;
     camera.offset = (Vector2){ screenWidth/2.0f, screenHeight/2.0f };
-    float hw=(screenWidth/2.0f)/camera.zoom; float hh=(screenHeight/2.0f)/camera.zoom;
-    float mw=MAP_COLS*TILE_SIZE; float mh=MAP_ROWS*TILE_SIZE;
-    if(camera.target.x<hw)camera.target.x=hw; if(camera.target.x>mw-hw)camera.target.x=mw-hw;
-    if(camera.target.y<hh)camera.target.y=hh; if(camera.target.y>mh-hh)camera.target.y=mh-hh;
+
+    float hw = (screenWidth/2.0f)/camera.zoom;
+    float hh = (screenHeight/2.0f)/camera.zoom;
+    float mw = MAP_COLS*TILE_SIZE;
+    float mh = MAP_ROWS*TILE_SIZE;
+
+    if (camera.target.x < hw) camera.target.x = hw;
+    if (camera.target.x > mw - hw) camera.target.x = mw - hw;
+    if (camera.target.y < hh) camera.target.y = hh;
+    if (camera.target.y > mh - hh) camera.target.y = mh - hh;
 
     if (IsKeyPressed(KEY_ESCAPE)) return PAUSE;
     return s;
@@ -159,10 +174,15 @@ void DrawGameplay() {
 
     if (player.isDead) {
         DrawRectangle(0,0,screenWidth,screenHeight,Fade(BLACK,0.8f));
-        DrawText("VOCE MORREU", screenWidth/2-100, screenHeight/2-50, 40, RED);
-        DrawText("ENTER para Renascer", screenWidth/2-120, screenHeight/2+20, 20, WHITE);
+
+        const char* msgDead = "VOCE MORREU";
+        const char* msgRest = "ENTER para Renascer";
+        DrawText(msgDead, screenWidth/2 - MeasureText(msgDead, 40)/2, screenHeight/2 - 50, 40, RED);
+        DrawText(msgRest, screenWidth/2 - MeasureText(msgRest, 20)/2, screenHeight/2 + 20, 20, WHITE);
     } else {
-        DrawText(TextFormat("VIDAS: %d", player.lives), 20, 20, 30, RED);
+        const char* txtLives = TextFormat("VIDAS: %d", player.lives);
+        DrawText(txtLives, 20, 20, 30, RED);
+
         if (currentMap.isVillage) {
             DrawText("VILA", 20, 60, 20, GREEN);
             DrawText(TextFormat("Proxima: Fase %d", nextLevelIndex), 20, 85, 20, LIME);
@@ -172,20 +192,17 @@ void DrawGameplay() {
     }
 }
 
-// ====================== TELA DE FIM DE JOGO (VITÓRIA) ======================
+// ====================== ENDING ======================
 
 GameScreen UpdateEnding(GameScreen s) {
-    // Toca música de Vitória
     if (!IsMusicStreamPlaying(musicEnding)) PlayMusicStream(musicEnding);
     UpdateMusicStream(musicEnding);
 
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
         gameInitialized = false;
-
         StopMusicStream(musicVila);
         StopMusicStream(musicTunel);
-        StopMusicStream(musicEnding); // <--- Para música ao sair
-
+        StopMusicStream(musicEnding);
         return MENU;
     }
     return s;
@@ -193,57 +210,123 @@ GameScreen UpdateEnding(GameScreen s) {
 
 void DrawEnding() {
     ClearBackground(BLACK);
-    DrawText("PARABENS!", screenWidth/2-150, screenHeight/2-50, 60, GOLD);
-    DrawText("Voce completou a aventura!", screenWidth/2-180, screenHeight/2+10, 20, WHITE);
-    DrawText("FIM DE JOGO - ENTER p/ Menu", screenWidth/2-180, screenHeight/2+60, 20, GRAY);
+    const char* t1 = "PARABENS!";
+    const char* t2 = "Voce completou a aventura!";
+    const char* t3 = "FIM DE JOGO - ENTER p/ Menu";
+
+    DrawText(t1, screenWidth/2 - MeasureText(t1,60)/2, screenHeight/2 - 50, 60, GOLD);
+    DrawText(t2, screenWidth/2 - MeasureText(t2,20)/2, screenHeight/2 + 10, 20, WHITE);
+    DrawText(t3, screenWidth/2 - MeasureText(t3,20)/2, screenHeight/2 + 60, 20, GRAY);
 }
 
-// ====================== OUTRAS TELAS (MENU, PAUSE, ETC) ======================
+// ====================== MENU ======================
 
 void InitMenu(Rectangle* a, Rectangle* b, Rectangle* c, Rectangle* d) {
     float cx = screenWidth/2.0f - 150;
-    *a=(Rectangle){cx,200,300,30}; *b=(Rectangle){cx,250,300,30};
-    *c=(Rectangle){cx,300,300,30}; *d=(Rectangle){cx,350,300,30};
+    *a = (Rectangle){cx, 200, 300, 30};
+    *b = (Rectangle){cx, 250, 300, 30};
+    *c = (Rectangle){cx, 300, 300, 30};
+    *d = (Rectangle){cx, 350, 300, 30};
 }
-GameScreen UpdateMenu(GameScreen s, const Rectangle* a, const Rectangle* b, const Rectangle* c, const Rectangle* d) {
-    if(!IsAudioDeviceReady()) InitAudioDevice();
-    if(!menuAudioLoaded){ musicMenu=LoadMusicStream("assets/music_menu.mp3"); SetMusicVolume(musicMenu,0.5f); PlayMusicStream(musicMenu); menuAudioLoaded=true; }
-    UpdateMusicStream(musicMenu);
-    if(!IsMusicStreamPlaying(musicMenu)) PlayMusicStream(musicMenu);
-    if(gameInitialized){ if(IsMusicStreamPlaying(musicVila)) StopMusicStream(musicVila); if(IsMusicStreamPlaying(musicTunel)) StopMusicStream(musicTunel); }
 
-    Vector2 m=GetMousePosition();
-    if(CheckCollisionPointRec(m,*a)&&IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){ startAsNewGame=true; StopMusicStream(musicMenu); return GAMEPLAY; }
-    if(CheckCollisionPointRec(m,*b)&&IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){ startAsNewGame=false; StopMusicStream(musicMenu); return GAMEPLAY; }
-    if(CheckCollisionPointRec(m,*c)&&IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return HELP;
-    if(CheckCollisionPointRec(m,*d)&&IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return EXITING;
+GameScreen UpdateMenu(GameScreen s, const Rectangle* a, const Rectangle* b, const Rectangle* c, const Rectangle* d) {
+    if (!IsAudioDeviceReady()) InitAudioDevice();
+
+    if (!menuAudioLoaded) {
+        musicMenu = LoadMusicStream("assets/music_menu.mp3");
+        SetMusicVolume(musicMenu, 0.5f);
+        PlayMusicStream(musicMenu);
+        menuAudioLoaded = true;
+    }
+
+    UpdateMusicStream(musicMenu);
+    if (!IsMusicStreamPlaying(musicMenu)) PlayMusicStream(musicMenu);
+
+    if (gameInitialized) {
+        if(IsMusicStreamPlaying(musicVila)) StopMusicStream(musicVila);
+        if(IsMusicStreamPlaying(musicTunel)) StopMusicStream(musicTunel);
+    }
+
+    Vector2 m = GetMousePosition();
+
+    if (CheckCollisionPointRec(m, *a) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        startAsNewGame = true;
+        StopMusicStream(musicMenu);
+        return GAMEPLAY;
+    }
+
+    if (CheckCollisionPointRec(m, *b) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        startAsNewGame = false;
+        StopMusicStream(musicMenu);
+        return GAMEPLAY;
+    }
+
+    if (CheckCollisionPointRec(m, *c) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return HELP;
+    if (CheckCollisionPointRec(m, *d) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return EXITING;
+
     return s;
 }
+
 void DrawMenu(const Rectangle* a, const Rectangle* b, const Rectangle* c, const Rectangle* d) {
-    DrawText("HOLLOW KNIGHT CLONE", screenWidth/2-200, 80, 40, BLACK);
-    DrawText("Jogar (Novo)", a->x, a->y, 30, CheckCollisionPointRec(GetMousePosition(),*a)?DARKGREEN:GREEN);
-    DrawText("Carregar", b->x, b->y, 30, CheckCollisionPointRec(GetMousePosition(),*b)?DARKBLUE:BLUE);
-    DrawText("Ajuda", c->x, c->y, 30, CheckCollisionPointRec(GetMousePosition(),*c)?DARKBROWN:GOLD);
-    DrawText("Sair", d->x, d->y, 30, CheckCollisionPointRec(GetMousePosition(),*d)?MAROON:RED);
+    const char* title = "HOLLOW KNIGHT CLONE";
+    DrawText(title, screenWidth/2 - MeasureText(title, 40)/2, 80, 40, BLACK);
+
+    Vector2 m = GetMousePosition();
+    DrawText("Jogar (Novo)", a->x, a->y, 30, CheckCollisionPointRec(m,*a) ? DARKGREEN : GREEN);
+    DrawText("Carregar", b->x, b->y, 30, CheckCollisionPointRec(m,*b) ? DARKBLUE : BLUE);
+    DrawText("Ajuda", c->x, c->y, 30, CheckCollisionPointRec(m,*c) ? DARKBROWN : GOLD);
+    DrawText("Sair", d->x, d->y, 30, CheckCollisionPointRec(m,*d) ? MAROON : RED);
 }
+
+// ====================== EXTRAS ======================
+
 GameScreen UpdatePause(GameScreen s) {
-    if(IsKeyPressed(KEY_ESCAPE)) return GAMEPLAY;
-    if(IsKeyPressed(KEY_BACKSPACE)) { gameInitialized=false; StopMusicStream(musicVila); StopMusicStream(musicTunel); return MENU; }
+    if (IsKeyPressed(KEY_ESCAPE)) return GAMEPLAY;
+    if (IsKeyPressed(KEY_BACKSPACE)) {
+        gameInitialized = false;
+        StopMusicStream(musicVila);
+        StopMusicStream(musicTunel);
+        return MENU;
+    }
     return s;
 }
+
 void DrawPause(GameScreen* s) {
     DrawRectangle(0,0,screenWidth,screenHeight,Fade(BLACK,0.5f));
-    DrawText("PAUSADO", screenWidth/2-80, screenHeight/2-20, 40, WHITE);
-    DrawText("ESC: Jogo | BACKSPACE: Menu", screenWidth/2-150, screenHeight/2+30, 20, LIGHTGRAY);
+    const char* t1 = "PAUSADO";
+    const char* t2 = "ESC: Jogo | BACKSPACE: Menu";
+    DrawText(t1, screenWidth/2 - MeasureText(t1,40)/2, screenHeight/2 - 20, 40, WHITE);
+    DrawText(t2, screenWidth/2 - MeasureText(t2,20)/2, screenHeight/2 + 30, 20, LIGHTGRAY);
 }
+
 GameScreen UpdateLoading(GameScreen s) {
     UpdateMusicStream(musicMenu);
-    if(IsKeyPressed(KEY_ESCAPE))return MENU; if(IsKeyPressed(KEY_SPACE)){ StopMusicStream(musicMenu); return GAMEPLAY; }
+    if (IsKeyPressed(KEY_ESCAPE)) return MENU;
+    if (IsKeyPressed(KEY_SPACE)) {
+        StopMusicStream(musicMenu);
+        return GAMEPLAY;
+    }
     return s;
 }
-void DrawLoading() { DrawText("CARREGANDO...", 100, 100, 30, BLUE); }
+
+void DrawLoading() {
+    const char* t1 = "CARREGANDO...";
+    DrawText(t1, 100, 100, 30, BLUE);
+}
+
 GameScreen UpdateHelp(GameScreen s) {
     UpdateMusicStream(musicMenu);
-    if(IsKeyPressed(KEY_ESCAPE)) return MENU; return s;
+    if (IsKeyPressed(KEY_ESCAPE)) return MENU;
+    return s;
 }
-void DrawHelp() { DrawText("AJUDA", screenWidth/2-50, 50, 40, BLACK); DrawText("Setas: Mover | Espaco: Pular | X: Atacar", 100, 150, 20, DARKGRAY); DrawText("CIMA: Portal | ESC: Voltar", 100, 200, 20, RED); }
+
+void DrawHelp() {
+    DrawText("AJUDA", screenWidth/2 - MeasureText("AJUDA", 40)/2, 50, 40, BLACK);
+
+    int y = 150;
+    DrawText("Setas: Mover", 100, y, 20, DARKGRAY);
+    DrawText("Espaco: Pular", 100, y+30, 20, DARKGRAY);
+    DrawText("X: Atacar", 100, y+60, 20, DARKGRAY);
+    DrawText("CIMA: Portal", 100, y+90, 20, DARKGRAY);
+    DrawText("ESC: Voltar", 100, screenHeight - 50, 20, RED);
+}

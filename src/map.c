@@ -1,14 +1,14 @@
 #include "../include/raylib.h"
 #include "map.h"
 
-// --- CORREÇÃO 1: Limpeza total da matriz ---
+// --- INITIALIZATION ---
+
 void ResetMap(Map* map) {
     map->barriersCount = 0;
     map->monstersCount = 0;
     map->portalsCount = 0;
     map->isVillage = false;
 
-    // Limpa a matriz visual preenchendo com espaços vazios
     for (int y = 0; y < MAP_ROWS; y++) {
         for (int x = 0; x < MAP_COLS; x++) {
             map->layout[y][x] = ' ';
@@ -20,33 +20,43 @@ void InitMap(Map* map) {
     map->tilesetTexture = LoadTexture("assets/frente.png");
     map->backgroundTexture = LoadTexture("assets/fundo.png");
 
-	map->monsterTextures[0] = LoadTexture("assets/monster1.png");
+    map->monsterTextures[0] = LoadTexture("assets/monster1.png");
     map->monsterTextures[1] = LoadTexture("assets/monster2.png");
 
-	map->portalTexture = LoadTexture("assets/portal.png");
+    map->portalTexture = LoadTexture("assets/portal.png");
 
     ResetMap(map);
 }
 
-Vector2 LoadMapFromFile(Map* map, const char* filename) {
-    ResetMap(map); // Limpa tudo antes de ler
+void UnloadMap(Map* map) {
+    UnloadTexture(map->tilesetTexture);
+    UnloadTexture(map->backgroundTexture);
+    UnloadTexture(map->monsterTextures[0]);
+    UnloadTexture(map->monsterTextures[1]);
+    UnloadTexture(map->portalTexture);
+}
 
+// --- PARSING ---
+
+Vector2 LoadMapFromFile(Map* map, const char* filename) {
+    ResetMap(map);
     FILE* file = fopen(filename, "r");
     Vector2 playerStart = {100, 300};
 
-    if (!file) {
-        printf("ERRO AO ABRIR: %s\n", filename);
-        return playerStart;
-    }
+    if (!file) return playerStart;
 
     char ch;
     int row = 0, col = 0;
 
     while ((ch = fgetc(file)) != EOF && row < MAP_ROWS) {
-        if (ch == '\n') { row++; col = 0; continue; }
+        if (ch == '\n') {
+            row++;
+            col = 0;
+            continue;
+        }
 
         if (col < MAP_COLS) {
-            map->layout[row][col] = ch; // Salva o caractere
+            map->layout[row][col] = ch;
             float px = col * TILE_SIZE;
             float py = row * TILE_SIZE;
 
@@ -78,6 +88,7 @@ Vector2 LoadMapFromFile(Map* map, const char* filename) {
                 }
                 map->layout[row][col] = ' ';
             }
+
             col++;
         }
     }
@@ -85,31 +96,33 @@ Vector2 LoadMapFromFile(Map* map, const char* filename) {
     return playerStart;
 }
 
+// --- RENDER ---
+
 void DrawMap(Map* map) {
-    // Fundo
+    // Background
     int bgW = map->backgroundTexture.width;
     int bgH = map->backgroundTexture.height;
     if (bgW > 0) {
-        for (int y=0; y<MAP_ROWS*TILE_SIZE; y+=bgH)
-            for (int x=0; x<MAP_COLS*TILE_SIZE; x+=bgW)
+        for (int y = 0; y < MAP_ROWS * TILE_SIZE; y += bgH) {
+            for (int x = 0; x < MAP_COLS * TILE_SIZE; x += bgW) {
                 DrawTexture(map->backgroundTexture, x, y, WHITE);
-    } else ClearBackground(RAYWHITE);
+            }
+        }
+    } else {
+        ClearBackground(RAYWHITE);
+    }
 
-    // Portais
+    // Portals
     for (int i = 0; i < map->portalsCount; i++) {
         Texture2D tex = map->portalTexture;
-        
-        // Origem: A imagem inteira
         Rectangle src = { 0, 0, 15.0f, 27.0f };
-        
-        // Destino: O retângulo de colisão do portal (que já tem tamanho 50x100)
         Rectangle dest = map->portals[i].rect;
-
         DrawTexturePro(tex, src, dest, (Vector2){0,0}, 0.0f, WHITE);
     }
-    // Paredes
-    for (int y=0; y<MAP_ROWS; y++) {
-        for (int x=0; x<MAP_COLS; x++) {
+
+    // Walls
+    for (int y = 0; y < MAP_ROWS; y++) {
+        for (int x = 0; x < MAP_COLS; x++) {
             if (map->layout[y][x] == 'P') {
                 Rectangle src = { 0, 0, 48, 48 };
                 Rectangle dst = { x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE };
@@ -117,14 +130,4 @@ void DrawMap(Map* map) {
             }
         }
     }
-}
-
-void UnloadMap(Map* map) {
-    UnloadTexture(map->tilesetTexture);
-    UnloadTexture(map->backgroundTexture);
-
-	UnloadTexture(map->monsterTextures[0]);
-    UnloadTexture(map->monsterTextures[1]);
-
-	UnloadTexture(map->portalTexture);
 }

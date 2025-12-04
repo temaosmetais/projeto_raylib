@@ -3,14 +3,14 @@
 
 #include "../include/raylib.h"
 
-// --- MAPA ---
+// --- DIMENSIONS & LIMITS ---
 #define TILE_SIZE 50
 #define MAP_ROWS 16
 #define MAP_COLS 150
 #define MAX_MONSTERS 30
 #define MAX_PORTALS 5
 
-// --- JOGADOR ---
+// --- PHYSICS & GAMEPLAY ---
 #define GRAVITY 800.0f
 #define JUMP_FORCE -550.0f
 #define PLAYER_SPEED 300.0f
@@ -18,7 +18,7 @@
 #define ATTACK_DURATION 0.3f
 #define ATTACK_COOLDOWN 0.5f
 
-// --- ESTRUTURAS ---
+// --- STRUCTS ---
 
 typedef struct Player {
     Vector2 position;
@@ -26,23 +26,19 @@ typedef struct Player {
     bool canJump;
     float width;
     float height;
-    
-    // Gráficos
-    Texture2D runTextures[3]; 
+
+    Texture2D runTextures[3];
     Texture2D jumpTexture;
-	Texture2D attackTexture;
-    
-    // Animação e Estado
+    Texture2D attackTexture;
+
     int frameCounter;
     int currentFrame;
     bool isFacingRight;
 
-    // Vida
     int lives;
     float invincibilityTimer;
     bool isDead;
 
-    // Combate
     bool isAttacking;
     float attackTimer;
     float cooldownTimer;
@@ -56,7 +52,7 @@ typedef struct Monster {
     float height;
     bool active;
     float moveTimer;
-    int direction; 
+    int direction;
     int hp;
 } Monster;
 
@@ -69,7 +65,7 @@ typedef struct Map {
     Rectangle barriers[MAP_ROWS * MAP_COLS];
     int barriersCount;
     char layout[MAP_ROWS][MAP_COLS + 1];
-    
+
     Monster monsters[MAX_MONSTERS];
     int monstersCount;
 
@@ -77,10 +73,10 @@ typedef struct Map {
     int portalsCount;
 
     bool isVillage;
-    
+
     Texture2D tilesetTexture;
     Texture2D backgroundTexture;
-	Texture2D monsterTextures[2];
+    Texture2D monsterTextures[2];
     Texture2D portalTexture;
 } Map;
 

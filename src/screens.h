@@ -23,4 +23,5 @@ void DrawPause(GameScreen* s);
 
 GameScreen UpdateEnding(GameScreen s);
 void DrawEnding();
+
 #endif

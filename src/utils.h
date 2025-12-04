@@ -4,4 +4,4 @@
 extern const int screenWidth;
 extern const int screenHeight;
 
-#endif // UTILS_H
+#endif
