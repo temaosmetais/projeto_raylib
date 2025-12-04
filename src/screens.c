@@ -127,9 +127,6 @@ GameScreen UpdateGameplay(GameScreen s) {
     for (int i = 0; i < currentMap.portalsCount; i++) {
         if (CheckCollisionRecs(pRect, currentMap.portals[i].rect)) {
 
-            const char* portalMsg = "W / CIMA";
-            DrawText(portalMsg, player.position.x - 20, player.position.y - 40, 10, RAYWHITE);
-
             if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
                 if (currentMap.isVillage) {
                     TransitionToLevel(nextLevelIndex);
@@ -175,8 +172,8 @@ void DrawGameplay() {
     if (player.isDead) {
         DrawRectangle(0,0,screenWidth,screenHeight,Fade(BLACK,0.8f));
 
-        const char* msgDead = "VOCE MORREU";
-        const char* msgRest = "ENTER para Renascer";
+        const char* msgDead = "VOCÊ MORREU";
+        const char* msgRest = "Aperte ENTER para renascer na vila";
         DrawText(msgDead, screenWidth/2 - MeasureText(msgDead, 40)/2, screenHeight/2 - 50, 40, RED);
         DrawText(msgRest, screenWidth/2 - MeasureText(msgRest, 20)/2, screenHeight/2 + 20, 20, WHITE);
     } else {
@@ -210,9 +207,9 @@ GameScreen UpdateEnding(GameScreen s) {
 
 void DrawEnding() {
     ClearBackground(BLACK);
-    const char* t1 = "PARABENS!";
-    const char* t2 = "Voce completou a aventura!";
-    const char* t3 = "FIM DE JOGO - ENTER p/ Menu";
+    const char* t1 = "FIM DE JOGO";
+    const char* t2 = "Parabéns, Você completou a aventura!";
+    const char* t3 = "Aperte ENTER para voltar ao MENU";
 
     DrawText(t1, screenWidth/2 - MeasureText(t1,60)/2, screenHeight/2 - 50, 60, GOLD);
     DrawText(t2, screenWidth/2 - MeasureText(t2,20)/2, screenHeight/2 + 10, 20, WHITE);
@@ -293,8 +290,8 @@ GameScreen UpdatePause(GameScreen s) {
 
 void DrawPause(GameScreen* s) {
     DrawRectangle(0,0,screenWidth,screenHeight,Fade(BLACK,0.5f));
-    const char* t1 = "PAUSADO";
-    const char* t2 = "ESC: Jogo | BACKSPACE: Menu";
+    const char* t1 = "JOGO PAUSADO";
+    const char* t2 = "Aperte ESC para retomar jogo ou BACKSPACE para voltar ao MENU";
     DrawText(t1, screenWidth/2 - MeasureText(t1,40)/2, screenHeight/2 - 20, 40, WHITE);
     DrawText(t2, screenWidth/2 - MeasureText(t2,20)/2, screenHeight/2 + 30, 20, LIGHTGRAY);
 }
@@ -325,8 +322,8 @@ void DrawHelp() {
 
     int y = 150;
     DrawText("Setas: Mover", 100, y, 20, DARKGRAY);
-    DrawText("Espaco: Pular", 100, y+30, 20, DARKGRAY);
+    DrawText("Espaço: Pular", 100, y+30, 20, DARKGRAY);
     DrawText("X: Atacar", 100, y+60, 20, DARKGRAY);
-    DrawText("CIMA: Portal", 100, y+90, 20, DARKGRAY);
-    DrawText("ESC: Voltar", 100, screenHeight - 50, 20, RED);
+    DrawText("SETA PARA CIMA: Entrar no portal/portão", 100, y+90, 20, DARKGRAY);
+    DrawText("ESC: Voltar para MENU", 100, screenHeight - 50, 20, RED);
 }
