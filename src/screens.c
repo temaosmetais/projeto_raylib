@@ -182,7 +182,7 @@ void DrawGameplay() {
 
         if (currentMap.isVillage) {
             DrawText("VILA", 20, 60, 20, GREEN);
-            DrawText(TextFormat("Proxima: Fase %d", nextLevelIndex), 20, 85, 20, LIME);
+            DrawText(TextFormat("Proximo Nível: Fase %d", nextLevelIndex), 20, 85, 20, LIME);
         } else {
             DrawText(TextFormat("FASE %d", currentLevel), 20, 60, 20, YELLOW);
         }
@@ -208,7 +208,7 @@ GameScreen UpdateEnding(GameScreen s) {
 void DrawEnding() {
     ClearBackground(BLACK);
     const char* t1 = "FIM DE JOGO";
-    const char* t2 = "Parabéns, Você completou a aventura!";
+    const char* t2 = "Parabéns, você completou a aventura!";
     const char* t3 = "Aperte ENTER para voltar ao MENU";
 
     DrawText(t1, screenWidth/2 - MeasureText(t1,60)/2, screenHeight/2 - 50, 60, GOLD);
