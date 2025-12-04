@@ -3,17 +3,24 @@
 #include "raylib.h"
 #include "utils.h"
 
-typedef enum GameScreen { MENU=0, GAMEPLAY, PAUSE, LOADING, HELP, EXITING } GameScreen;
+typedef enum GameScreen { MENU=0, GAMEPLAY, PAUSE, LOADING, HELP, ENDING, EXITING } GameScreen;
 
-// (Funções de Menu, Loading, Help omitidas para brevidade - mantenha as antigas)
 void InitMenu(Rectangle* a, Rectangle* b, Rectangle* c, Rectangle* d);
 GameScreen UpdateMenu(GameScreen s, const Rectangle* a, const Rectangle* b, const Rectangle* c, const Rectangle* d);
 void DrawMenu(const Rectangle* a, const Rectangle* b, const Rectangle* c, const Rectangle* d);
 
-GameScreen UpdateGameplay(GameScreen currentScreen);
+GameScreen UpdateGameplay(GameScreen s);
 void DrawGameplay();
 
-// Adicione os cabeçalhos para Pause, Help, etc aqui...
+GameScreen UpdateLoading(GameScreen s);
+void DrawLoading();
+
+GameScreen UpdateHelp(GameScreen s);
+void DrawHelp();
+
 GameScreen UpdatePause(GameScreen s);
 void DrawPause(GameScreen* s);
+
+GameScreen UpdateEnding(GameScreen s);
+void DrawEnding();
 #endif

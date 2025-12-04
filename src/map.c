@@ -1,63 +1,80 @@
 #include "../include/raylib.h"
 #include "map.h"
 
+// --- CORREÇÃO 1: Limpeza total da matriz ---
 void ResetMap(Map* map) {
     map->barriersCount = 0;
     map->monstersCount = 0;
+    map->portalsCount = 0;
     map->isVillage = false;
+
+    // Limpa a matriz visual preenchendo com espaços vazios
+    for (int y = 0; y < MAP_ROWS; y++) {
+        for (int x = 0; x < MAP_COLS; x++) {
+            map->layout[y][x] = ' ';
+        }
+    }
 }
 
 void InitMap(Map* map) {
-    // Carrega texturas globais do mapa
-    map->tilesetTexture = LoadTexture("assets/nestle.png");
+    map->tilesetTexture = LoadTexture("assets/frente.png");
     map->backgroundTexture = LoadTexture("assets/fundo.png");
+
+	map->monsterTextures[0] = LoadTexture("assets/monster1.png");
+    map->monsterTextures[1] = LoadTexture("assets/monster2.png");
+
+	map->portalTexture = LoadTexture("assets/portal.png");
+
     ResetMap(map);
 }
 
 Vector2 LoadMapFromFile(Map* map, const char* filename) {
-    ResetMap(map);
+    ResetMap(map); // Limpa tudo antes de ler
+
     FILE* file = fopen(filename, "r");
-    Vector2 playerStart = {100, 300}; // Padrão se não achar 'J'
+    Vector2 playerStart = {100, 300};
 
     if (!file) {
-        printf("ERRO: Nao foi possivel abrir %s\n", filename);
+        printf("ERRO AO ABRIR: %s\n", filename);
         return playerStart;
     }
 
     char ch;
-    int row = 0;
-    int col = 0;
+    int row = 0, col = 0;
 
     while ((ch = fgetc(file)) != EOF && row < MAP_ROWS) {
-        if (ch == '\n') {
-            row++;
-            col = 0;
-            continue;
-        }
+        if (ch == '\n') { row++; col = 0; continue; }
 
         if (col < MAP_COLS) {
-            map->layout[row][col] = ch;
+            map->layout[row][col] = ch; // Salva o caractere
             float px = col * TILE_SIZE;
             float py = row * TILE_SIZE;
 
-            if (ch == 'P') { // Parede
-                map->barriers[map->barriersCount] = (Rectangle){ px, py, TILE_SIZE, TILE_SIZE };
-                map->barriersCount++;
+            if (ch == 'P') {
+                map->barriers[map->barriersCount++] = (Rectangle){ px, py, TILE_SIZE, TILE_SIZE };
             }
-            else if (ch == 'J') { // Jogador
+            else if (ch == 'J') {
                 playerStart = (Vector2){ px, py };
-                map->layout[row][col] = ' '; // Limpa visualmente
+                map->layout[row][col] = ' ';
             }
-            else if (ch == 'M') { // Monstro
+            else if (ch == 'M') {
                 if (map->monstersCount < MAX_MONSTERS) {
-                    Monster* m = &map->monsters[map->monstersCount];
+                    Monster* m = &map->monsters[map->monstersCount++];
                     m->position = (Vector2){ px, py };
                     m->speed = (Vector2){0,0};
                     m->width = 40; m->height = 40;
                     m->active = true;
-                    m->moveTimer = 0;
+                    m->hp = 3;
                     m->direction = 1;
-                    map->monstersCount++;
+                }
+                map->layout[row][col] = ' ';
+            }
+            else if (ch == 'D' || ch == 'C') {
+                if (map->portalsCount < MAX_PORTALS) {
+                    map->portals[map->portalsCount++] = (Portal){
+                        .rect = { px, py, TILE_SIZE, TILE_SIZE * 2 },
+                        .active = true
+                    };
                 }
                 map->layout[row][col] = ' ';
             }
@@ -69,28 +86,32 @@ Vector2 LoadMapFromFile(Map* map, const char* filename) {
 }
 
 void DrawMap(Map* map) {
-    // 1. Fundo Repetido
+    // Fundo
     int bgW = map->backgroundTexture.width;
     int bgH = map->backgroundTexture.height;
-
     if (bgW > 0) {
-        // Cobre toda a extensão do mapa (150 blocos)
-        for (int y = 0; y < MAP_ROWS * TILE_SIZE; y += bgH) {
-            for (int x = 0; x < MAP_COLS * TILE_SIZE; x += bgW) {
+        for (int y=0; y<MAP_ROWS*TILE_SIZE; y+=bgH)
+            for (int x=0; x<MAP_COLS*TILE_SIZE; x+=bgW)
                 DrawTexture(map->backgroundTexture, x, y, WHITE);
-            }
-        }
-    } else {
-        ClearBackground(RAYWHITE);
-    }
+    } else ClearBackground(RAYWHITE);
 
-    // 2. Paredes
-    for (int y = 0; y < MAP_ROWS; y++) {
-        for (int x = 0; x < MAP_COLS; x++) {
+    // Portais
+    for (int i = 0; i < map->portalsCount; i++) {
+        Texture2D tex = map->portalTexture;
+        
+        // Origem: A imagem inteira
+        Rectangle src = { 0, 0, 15.0f, 27.0f };
+        
+        // Destino: O retângulo de colisão do portal (que já tem tamanho 50x100)
+        Rectangle dest = map->portals[i].rect;
+
+        DrawTexturePro(tex, src, dest, (Vector2){0,0}, 0.0f, WHITE);
+    }
+    // Paredes
+    for (int y=0; y<MAP_ROWS; y++) {
+        for (int x=0; x<MAP_COLS; x++) {
             if (map->layout[y][x] == 'P') {
-                // Desenha usando o tileset (ajuste o recorte se precisar)
-                Rectangle src = { 0, 0, map->tilesetTexture.width, map->tilesetTexture.height }; // Imagem inteira ou recorte
-                // Se usar nestle.png (tileset), mude o src acima para {0,0,16,16} ou similar
+                Rectangle src = { 0, 0, 48, 48 };
                 Rectangle dst = { x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE };
                 DrawTexturePro(map->tilesetTexture, src, dst, (Vector2){0,0}, 0.0f, WHITE);
             }
@@ -101,4 +122,9 @@ void DrawMap(Map* map) {
 void UnloadMap(Map* map) {
     UnloadTexture(map->tilesetTexture);
     UnloadTexture(map->backgroundTexture);
+
+	UnloadTexture(map->monsterTextures[0]);
+    UnloadTexture(map->monsterTextures[1]);
+
+	UnloadTexture(map->portalTexture);
 }
